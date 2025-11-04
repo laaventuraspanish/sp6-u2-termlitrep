@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Actividad de Repaso: Términos Literarios AP</title>
+    
+    <!-- Cargar Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Cargar Google Font para el diseño -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- Cargar html2canvas (para el resumen final) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+        /* Aplicar fuentes */
+        body {
+            font-family: 'Lato', sans-serif;
+            background-color: #fefcf3; /* Un color pergamino/crema muy claro */
+        }
+        
+        h1, h2, h3 {
+            font-family: 'Merriweather', serif;
+        }
+
+        /* Tarjeta de selección de texto */
+        .text-card {
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+        }
+        .text-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .text-card img {
+            object-fit: cover;
+            height: 300px;
+            width: 100%;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .text-card .completed-overlay {
+            display: none; /* Oculto por defecto */
+        }
+        .text-card.completed {
+            opacity: 0.6;
+        }
+        .text-card.completed .completed-overlay {
+            display: flex;
+        }
+
+        /* --- NUEVOS ESTILOS (Clic-para-Coincidir) --- */
+
+        /* Tarjeta de término (Clickeable) */
+        .term-card {
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            user-select: none; /* Evitar selección de texto */
+        }
+        /* Estado SELECCIONADO de la tarjeta de término */
+        .term-card.selected {
+            transform: scale(1.05);
+            background-color: #0369a1; /* sky-700 */
+            ring-offset-2;
+            ring-4;
+            ring-sky-400;
+        }
+        /* Estado USADO de la tarjeta de término */
+        .term-card.used {
+            opacity: 0.3;
+            cursor: not-allowed;
+            background-color: #6b7280; /* gray-500 */
+        }
+
+        /* Zona de soltar (Clickeable) */
+        .drop-zone {
+            transition: all 0.2s ease-in-out;
+            min-height: 80px;
+            min-width: 150px; /* Ancho mínimo */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem;
+            cursor: pointer;
+            border-style: dashed;
+            text-align: center;
+            font-weight: 600;
+        }
+        /* Zona de soltar vacía (placeholder) */
+        .drop-zone.empty {
+            color: #9ca3af; /* gray-400 */
+            font-style: italic;
+            font-weight: 400;
+        }
+        /* Zona de soltar con un término puesto */
+        .drop-zone.has-term {
+            color: #1e3a8a; /* indigo-900 */
+            background-color: #e0e7ff; /* indigo-100 */
+            border-color: #a5b4fc; /* indigo-300 */
+            border-style: solid;
+            font-weight: 600;
+        }
+        /* Zona de soltar destacada al seleccionar un término */
+        .term-selected .drop-zone.empty:hover {
+            background-color: #f0f9ff; /* sky-50 */
+            border-color: #38bdf8; /* sky-400 */
+        }
+        /* --- FIN DE NUEVOS ESTILOS --- */
+
+
+        /* Texto de la cita */
+        .quote-text {
+            flex-basis: 70%;
+            flex-grow: 1;
+        }
+
+        /* Estados de Validación */
+        .drop-zone.correct {
+            border-color: #4ade80 !important; /* green-400 */
+            background-color: #f0fdf4 !important; /* green-50 */
+            color: #065f46 !important; /* green-800 */
+        }
+        .drop-zone.error {
+            border-color: #f87171 !important; /* red-400 */
+            background-color: #fef2f2 !important; /* red-50 */
+            color: #b91c1c !important; /* red-800 */
+        }
+        
+        /* Error en el input de nombre */
+        .input-error {
+            border-color: #ef4444; /* red-500 */
+            box-shadow: 0 0 0 2px #fecaca; /* red-200 */
+        }
+
+        /* Contenedor de retroalimentación */
+        .feedback-area {
+            transition: all 0.3s ease;
+        }
+        .feedback-area.success { 
+            background-color: #f0fdf4; /* green-50 */
+            border-color: #4ade80; /* green-400 */
+        }
+        .feedback-area.error { 
+            background-color: #fef2f2; /* red-50 */
+            border-color: #f87171; /* red-400 */
+        }
+        
+        /* Estilos para el Modal de Resumen */
+        .summary-modal-content {
+            background-color: #fefcf3; /* Fondo pergamino */
+        }
+        
+    </style>
+</head>
+<body class="bg-amber-50">
+
+    <!-- Modal de Nombre (sin cambios) -->
+    <div id="name-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-75 p-4">
+        <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md text-center">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Bienvenido/a a la Actividad</h2>
+            <p class="text-gray-600 mb-6">Por favor, introduce tu nombre para comenzar.</p>
+            <input type="text" id="name-input" class="w-full px-4 py-3 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-sky-500" placeholder="Tu nombre...">
+            <button id="start-btn" class="w-full bg-sky-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-sky-800 transition-colors mt-6 text-lg">
+                Comenzar
+            </button>
+        </div>
+    </div>
+
+    <!-- Contenido Principal (Selección de Texto) (sin cambios) -->
+    <div id="main-content" style="display: none;">
+        <div class="max-w-7xl mx-auto p-6 md:p-10">
+            
+            <header class="text-center mb-8">
+                <h1 id="header-title" class="text-3xl md:text-4xl font-bold text-stone-800">Actividad de Repaso</h1>
+                <p id="header-subtitle" class="text-lg text-stone-600 mt-2">Selecciona un texto para comenzar</p>
+                <button id="reset-btn" class="mt-4 bg-stone-700 text-white font-semibold py-2 px-5 rounded-lg shadow hover:bg-stone-800 transition-colors">
+                    Reiniciar Juego
+                </button>
+            </header>
+
+            <div id="main-feedback" class="text-center text-lg font-semibold p-4 rounded-lg mb-6" style="display: none;"></div>
+
+            <div id="text-selection-container" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+                <!-- Las tarjetas de texto se generarán aquí -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Pantalla del Juego (Ligeramente modificada) -->
+    <div id="game-screen" class="fixed inset-0 z-40 bg-amber-50 p-6 md:p-10 overflow-y-auto" style="display: none;">
+        <div class="max-w-7xl mx-auto">
+            
+            <header class="text-center mb-8">
+                <button id="back-to-texts-btn" class="float-left bg-stone-700 text-white font-semibold py-2 px-5 rounded-lg shadow hover:bg-stone-800 transition-colors">
+                    &larr; Volver a Textos
+                </button>
+                <h2 id="game-header-title" class="text-3xl md:text-4xl font-bold text-stone-800"></h2>
+                <p id="game-header-subtitle" class="text-lg text-stone-600 mt-2">Relaciona las citas con los términos</p>
+            </header>
+            
+            <div class="bg-white p-6 rounded-xl shadow-xl border border-gray-200">
+                <!-- 1. Opciones de Términos (Clickeables) -->
+                <div class="mb-8">
+                    <h3 class="text-2xl font-bold text-center text-sky-800 mb-6">Términos (Haz clic en uno)</h3>
+                    <div id="terms-container" class="flex flex-wrap items-center justify-center gap-4 p-4 bg-gray-50 rounded-lg border">
+                        <!-- Las tarjetas de términos se generarán aquí -->
+                    </div>
+                </div>
+
+                <!-- 2. Citas y Zonas de Clic -->
+                <div>
+                    <h3 class="text-2xl font-bold text-center text-stone-800 mb-6">Citas (Haz clic para soltar)</h3>
+                    <div id="definitions-container" class="space-y-4">
+                        <!-- Las filas de citas se generarán aquí -->
+                    </div>
+                </div>
+
+                <!-- 3. Botones de Control (sin cambios) -->
+                <div class="flex justify-center mt-8 gap-4">
+                    <button id="check-btn" class="bg-blue-600 text-white font-semibold py-3 px-8 rounded-lg shadow-md hover:bg-blue-700 transition-colors text-lg">
+                        Revisar Respuestas
+                    </button>
+                    <button id="next-btn" class="bg-green-600 text-white font-semibold py-3 px-8 rounded-lg shadow-md hover:bg-green-700 transition-colors text-lg" style="display: none;">
+                        Siguiente Grupo
+                    </button>
+                </div>
+
+                <!-- 4. Área de Retroalimentación (sin cambios) -->
+                <div id="feedback-area" class="feedback-area mt-8 p-6 rounded-lg border-2" style="display: none;">
+                    <!-- El feedback se generará aquí -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Resumen Final (sin cambios) -->
+    <div id="summary-modal" class="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900 bg-opacity-75 p-4" style="display: none;">
+        <div id="summary-content" class="summary-modal-content p-8 rounded-xl shadow-2xl w-full max-w-2xl text-gray-800 border-4 border-stone-700">
+            <!-- Contenido del resumen (sin cambios) -->
+            <h2 class="text-3xl font-bold text-center text-stone-800 mb-6">¡Actividad Completada!</h2>
+            <div class="text-center mb-6">
+                <p class="text-xl">Estudiante: <strong id="summary-name" class="font-semibold"></strong></p>
+                <p class="text-xl">Tiempo Total: <strong id="summary-time" class="font-semibold"></strong></p>
+            </div>
+            <div class="mt-6">
+                <h3 class="text-2xl font-bold text-center text-red-700 mb-4">Términos a Repasar</h3>
+                <p class="text-center text-gray-600 mb-4">(Términos fallados más de una vez)</p>
+                <ul id="summary-struggle-list" class="list-disc list-inside text-lg space-y-2 text-center"></ul>
+                <p id="summary-no-struggle" class="text-lg text-center text-green-700 font-semibold" style="display: none;">¡No has fallado ningún término más de una vez! ¡Excelente!</p>
+            </div>
+            <p class="text-center text-gray-500 mt-8 italic">Se está generando un resumen en .png para descargar...</p>
+        </div>
+    </div>
+
+
+    <script>
+        // --- 1. DATOS DE LA ACTIVIDAD (Sin cambios) ---
+        const allTerms = {
+            'metacuento': { hint: "Un 'meta-relato' es una historia dentro de otra historia.", explanation: "Es un metacuento porque la historia de Patronio (sobre el mancebo) se cuenta *dentro* de la historia principal (la conversación del Conde)." },
+            'moraleja': { hint: "Es la lección o consejo explícito que enseña la historia, casi siempre al final.", explanation: "Esta es la lección final que Don Juan Manuel extrae del cuento de Patronio." },
+            'fábula': { hint: "Un cuento corto, a menudo con personas o animales, que enseña una lección moral.", explanation: "Es una fábula porque es un relato breve diseñado para enseñar una lección práctica (la moraleja)." },
+            'estribillo': { hint: "Un verso o conjunto de versos que se repiten a intervalos regulares en un poema.", explanation: "¡Ay de mi Alhama!' se repite al final de muchas estrofas, dando unidad y énfasis al lamento." },
+            'rima asonante en versos pares': { hint: "Solo las vocales riman al final de los versos pares (2, 4, 6...). Típico de los romances.", explanation: "En los versos pares, las vocales 'a-a' (br**a**v**e**z**a** / Alh**a**m**a**) riman, mientras las consonantes no." },
+            'polifonía': { hint: "La presencia de múltiples voces (personajes) que hablan en un texto.", explanation: "Oímos al menos tres voces: el narrador, el Rey Moro, el moro viejo y el alfaquí, dándonos diferentes perspectivas." },
+            'in medias res': { hint: "La historia empieza 'en medio de la acción', sin una introducción o trasfondo previo.", explanation: "El poema no empieza con 'Había una vez...', sino directamente con el rey paseando, justo cuando recibe la noticia." },
+            'sátira': { hint: "Una crítica a la sociedad o a las personas usando el humor, la ironía o la exageración.", explanation: "Lázaro usa el humor para criticar la avaricia del clérigo y la falsa honra del escudero, exponiendo la hipocresía social." },
+            'antihéroe': { hint: "Un protagonista que, a diferencia del héroe tradicional, es de baja clase y usa su ingenio o astucia (no la virtud) para sobrevivir.", explanation: "Lázaro no es un caballero noble, sino un niño pobre que debe engañar y robar para poder comer." },
+            'protagonista': { hint: "El personaje principal de una obra.", explanation: "Lázaro es el personaje central y toda la historia gira en torno a sus experiencias." },
+            'narratorio': { hint: "La persona *dentro* del texto a quien el narrador dirige su historia.", explanation: "Lázaro escribe toda su carta a 'Vuestra Merced' para explicar 'el caso'." },
+            'narrador no fidedigno': { hint: "Un narrador en quien no podemos confiar plenamente, ya que cuenta la historia desde su propio interés.", explanation: "No podemos confiar al 100% en Lázaro, ya que escribe para justificar por qué acepta la infidelidad de su esposa." },
+            'hipérbole': { hint: "Una exageración obvia que se usa para crear un efecto (a menudo cómico).", explanation: "Llamar al arca un 'paraíso panal' es una exageración cómica para enfatizar el hambre que pasaba." },
+            'símbolo': { hint: "Un objeto o imagen que representa una idea o concepto más abstracto.", explanation: "La 'espiga de fuego' no es solo un cometa, representa la inminente destrucción y el 'presagio funesto'." },
+            'imagen': { hint: "Una descripción que apela a uno de los cinco sentidos (vista, oído, olfato, gusto, tacto).", explanation: "Esta es una imagen visual y auditiva fuerte que nos permite 'ver' y 'oír' el templo quemándose." },
+            'paralelismo': { hint: "La repetición de la misma estructura gramatical en varias frases seguidas.", explanation: "La repetición de 'El X presagio funesto...' crea un ritmo solemne y enfatiza la acumulación de señales." },
+            'polisíndeton': { hint: "El uso repetido e intencional de conjunciones (como 'y', 'o', 'ni') para crear un efecto.", explanation: "El uso de 'ni... ni...' ralentiza la frase y subraya la naturaleza sobrenatural del fuego." },
+            'metáfora': { hint: "Una comparación directa entre dos cosas distintas, sin usar 'como'.", explanation: "La mujer que llora por sus 'hijos' es una metáfora del pueblo mexica, sus 'hijos'." },
+            'narrador testigo': { hint: "El narrador es un personaje que participa en la acción y cuenta lo que vio.", explanation: "Hernán Cortés es el narrador y nos cuenta en primera persona ('yo vi', 'yo hice') lo que vivió en la conquista." },
+            'punto de vista': { hint: "La perspectiva desde la cual se cuenta la historia.", explanation: "Solo vemos la perspectiva de Cortés (el conquistador), no la de los mexicas. Esto limita nuestra comprensión." },
+            'narratorio (en "Segunda carta...")': { hint: "La persona *dentro* del texto a quien el narrador dirige su historia.", explanation: "Cortés le escribe su larga carta (relación) directamente al emperador Carlos V." },
+            'asíndeton': { hint: "La omisión de conjunciones (como 'y') en una lista para acelerar el ritmo.", explanation: "Cortés enumera los productos omitiendo la 'y' ('...de caza, de aves, de yerbas...') para crear la sensación de abundancia y velocidad." },
+            'apóstrofe': { hint: "Cuando el narrador o un personaje habla directamente a alguien (o algo) que está ausente o no puede responder.", explanation: "El poeta se dirige directamente a sus 'amigos' ('Llorad, amigos míos') para compartir su lamento." },
+            'apología': { hint: "Un discurso o texto escrito en defensa o alabanza de alguien o algo.", explanation: "Aunque es un lamento, el poema también sirve como una apología que defiende y alaba la grandeza de la nación mexica perdida." },
+            'imagen (en "Se ha perdido...")': { hint: "Una descripción que apela a uno de los cinco sentidos.", explanation: "Esta es una poderosa imagen visual ('humo', 'niebla') que nos permite ver la desolación de la ciudad." },
+            'tono': { hint: "La actitud o emoción general que el autor transmite en el texto (triste, alegre, irónico, etc.).", explanation: "El poema es un lamento fúnebre por una ciudad perdida; el tono es de profunda tristeza, es decir, elegíaco." },
+            'cesura': { hint: "Una pausa fuerte en medio de un verso de poesía, a menudo marcada por puntuación.", explanation: "La coma y la pregunta '¿Adónde vamos?, || ¡oh amigos!' crean una pausa dramática (cesura) en mitad del verso." }
+        };
+
+        const allTexts = {
+            'condeLucanor': {
+                title: "El Conde Lucanor",
+                coverImage: "https://pictures.abebooks.com/isbn/9788495407849-us.jpg",
+                questions: [
+                    { id: 'p1', quote: "Un cuento (el de Patronio) <u>dentro de otro cuento</u> (la conversación del conde).", term: 'metacuento' },
+                    { id: 'p2', quote: "La lección al final del exemplo: '<u>Si al comienzo no muestras quién eres</u>, / nunca podrás después, cuando quisieres.'", term: 'moraleja' },
+                    { id: 'p3', quote: "Un <u>relato breve con una lección explícita</u> sobre cómo un mancebo 'domó' a una mujer brava.", term: 'fábula' }
+                ],
+                options: ['metacuento', 'moraleja', 'fábula', 'estribillo', 'sátira', 'polifonía']
+            },
+            'romanceAlhama': {
+                title: "Romance de la pérdida de Alhama",
+                coverImage: "https://o.quizlet.com/a0qv5N77IjBnZc8yaHA3yA.jpg",
+                questions: [
+                    { id: 'p4', quote: "El verso que se repite a lo largo del poema: '<u>¡Ay de mi Alhama!</u>'", term: 'estribillo' },
+                    { id: 'p7', quote: "El poema empieza bruscamente <u>con la acción ya en curso</u>: '<u>Paseábase el rey moro</u>...'", term: 'in medias res' },
+                    { id: 'p6', quote: "Se oyen <u>varias voces</u> en el poema: la del <u>rey</u>, la del <u>moro viejo</u> y la del <u>alfaquí</u>.", term: 'polifonía' },
+                    { id: 'p5', quote: "Las vocales 'a-a' se repiten al final de los <u>versos pares</u> (ej: 'br<u>a</u>v<u>e</u>z<u>a</u>' / 'Alh<u>a</u>m<u>a</u>').", term: 'rima asonante en versos pares' }
+                ],
+                options: ['estribillo', 'in medias res', 'polifonía', 'rima asonante en versos pares', 'antihéroe', 'metáfora']
+            },
+            'lazarillo': {
+                title: "Lazarillo de Tormes",
+                coverImage: "https://archive.org/download/lazarillo_0912_librivox/Lazarillo_de_Tormes_1003.jpg",
+                questions: [
+                    { id: 'p8', quote: "<u>Crítica social, a través del humor</u>, de la hipocresía de la iglesia y la obsesión con la honra.", term: 'sátira' },
+                    { id: 'p9', quote: "Un protagonista de baja clase social que sobrevive usando su <u>ingenio, no por su virtud</u>.", term: 'antihéroe' },
+                    { id: 'p12', quote: "Lázaro cuenta su historia para justificar su situación actual, por lo que <u>podría no estar diciendo toda la verdad</u>.", term: 'narrador no fidedigno' },
+                    { id: 'p10', quote: "Lázaro, el <u>personaje principal</u> que narra su propia vida desde la niñez.", term: 'protagonista' },
+                    { id: 'p11', quote: "La persona a quien Lázaro dirige su carta para explicar 'el caso': '<u>Vuestra Merced</u>'.", term: 'narratorio' },
+                    { id: 'p13', quote: "La <u>exageración</u> cómica del hambre, como cuando Lázaro describe el arca del clérigo como un '<u>paraíso panal</u>'.", term: 'hipérbole' }
+                ],
+                options: ['sátira', 'antihéroe', 'narrador no fidedigno', 'protagonista', 'hipérbole', 'narratorio']
+            },
+            'segundaCarta': {
+                title: "Segunda carta de relación",
+                coverImage: "https://www.cervantesvirtual.com/portadas/097/0974782/Cover.jpg",
+                questions: [
+                    { id: 'p19', quote: "El narrador (Hernán Cortés) participa en los eventos y <u>cuenta lo que él mismo vio</u> y hizo.", term: 'narrador testigo' },
+                    { id: 'p20', quote: "La <u>perspectiva única del conquistador</u> español; no oímos la voz de los mexicas.", term: 'punto de vista' },
+                    { id: 'p21', quote: "El <u>emperador Carlos V</u>, a quien Cortés escribe la carta.", term: 'narratorio (en "Segunda carta...")' },
+                    { id: 'p22', quote: "La enumeración rápida de productos <u>omitiendo la 'y'</u>: 'Hay calles de caza, de aves, de yerbas...'", term: 'asíndeton' }
+                ],
+                options: ['narrador testigo', 'punto de vista', 'narratorio (en "Segunda carta...")', 'asíndeton', 'narrador no fidedigno', 'hipérbole']
+            },
+            'visionVencidos': {
+                title: "Visión de los Vencidos",
+                coverImage: "https://archive.org/services/img/leon-portilla-m.-cronicas-indigenas.-vision-de-los-vencidos-1959-2016/full/pct:200/0/default.jpg",
+                questions: [
+                    { id: 'p14', quote: "Una '<u>espiga de fuego</u>' en el cielo que se <u>interpreta como un anuncio</u> de destrucción.", term: 'símbolo' },
+                    { id: 'p15', quote: "Descripción sensorial de un evento: 'El templo de Huitzilopochtli <u>ardió</u> por sí mismo, se <u>abrasó</u>'.", term: 'imagen' },
+                    { id: 'p18', quote: "La voz de una mujer (Cihuacóatl) que llora por sus '<u>hijos</u>', <u>refiriéndose al pueblo</u> mexica.", term: 'metáfora' },
+                    { id: 'p16', quote: "La <u>repetición de la misma estructura</u> en varias frases: '<u>El primer presagio</u> funesto... <u>El segundo presagio</u> funesto...'", term: 'paralelismo' },
+                    { id: 'p17', quote: "La repetición de conjunciones para dar un ritmo lento: '...<u>ni</u> con palo, <u>ni</u> con piedra...'", term: 'polisíndeton' },
+                    { id: 'p23', quote: "El poeta <u>habla directamente a sus 'amigos'</u> para lamentarse: '<u>Llorad, amigos míos</u>...'", term: 'apóstrofe' },
+                    { id: 'p24', quote: "Un discurso que <u>alaba y defiende la grandeza</u> de la civilización mexica que ha sido destruida.", term: 'apología' },
+                    { id: 'p25', quote: "Visualización de la derrota: 'El <u>humo se está levantando</u>; la <u>niebla se está extendiendo</u>...'", term: 'imagen (en "Se ha perdido...")' },
+                    { id: 'p26', quote: "<u>Elegíaco</u>; de <u>profunda tristeza</u> y lamento por la ciudad y el pueblo perdidos.", term: 'tono' },
+                    { id: 'p27', quote: "Una <u>pausa fuerte</u> en medio de un verso, marcada por puntuación: '¿Adónde vamos?<u>,</u> || ¡oh amigos!'", term: 'cesura' }
+                ],
+                options: ['símbolo', 'imagen', 'metáfora', 'paralelismo', 'polisíndeton', 'apóstrofe', 'apología', 'imagen (en "Se ha perdido...")', 'tono', 'cesura']
+            }
+        };
+
+        // --- 2. ELEMENTOS DEL DOM (Sin cambios) ---
+        const nameModal = document.getElementById('name-modal');
+        const mainContent = document.getElementById('main-content');
+        const gameScreen = document.getElementById('game-screen');
+        const startButton = document.getElementById('start-btn');
+        const nameInput = document.getElementById('name-input');
+        const headerTitle = document.getElementById('header-title');
+        const headerSubtitle = document.getElementById('header-subtitle');
+        const mainFeedback = document.getElementById('main-feedback');
+        const textSelectionContainer = document.getElementById('text-selection-container');
+        const gameHeaderTitle = document.getElementById('game-header-title');
+        const gameHeaderSubtitle = document.getElementById('game-header-subtitle');
+        const termsContainer = document.getElementById('terms-container');
+        const definitionsContainer = document.getElementById('definitions-container');
+        const feedbackArea = document.getElementById('feedback-area');
+        const resetBtn = document.getElementById('reset-btn');
+        const checkBtn = document.getElementById('check-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const backToTextsBtn = document.getElementById('back-to-texts-btn');
+        const summaryModal = document.getElementById('summary-modal');
+
+        // --- Variables de Estado del Juego ---
+        let currentTextId = null;
+        let completedTexts = new Set();
+        let shuffledQuestionsForCurrentText = [];
+        let questionsLoadedCount = 0;
+        let struggleStats = {};
+        let startTime = null;
+        
+        // --- NUEVA Variable de Estado ---
+        let selectedTermCard = null; // Almacena la tarjeta de término seleccionada
+        const PLACEHOLDER_TEXT = 'Haz clic aquí para soltar un término';
+
+        // --- 3. LÓGICA DE INICIO (MODAL) (Sin cambios) ---
+        startButton.addEventListener('click', () => {
+            const studentName = nameInput.value.trim();
+            if (studentName === "") {
+                nameInput.classList.add('input-error');
+            } else {
+                nameInput.classList.remove('input-error');
+                nameModal.style.display = 'none';
+                mainContent.style.display = 'block';
+                headerTitle.textContent = `Actividad de Repaso para ${studentName}`;
+                startTime = new Date(); // Iniciar el temporizador
+                initGame();
+            }
+        });
+        nameInput.addEventListener('input', () => {
+            if (nameInput.value.trim() !== "") {
+                nameInput.classList.remove('input-error');
+            }
+        });
+
+        // --- 4. FUNCIONES DEL JUEGO (Modificadas para Clic) ---
+        
+        function initGame() {
+            currentTextId = null;
+            completedTexts.clear();
+            struggleStats = {}; // Reiniciar estadísticas
+            gameScreen.style.display = 'none';
+            mainContent.style.display = 'block';
+            headerSubtitle.textContent = "Selecciona un texto para comenzar";
+            mainFeedback.style.display = 'none';
+            createTextSelectionScreen();
+        }
+
+        function createTextSelectionScreen() {
+            textSelectionContainer.innerHTML = '';
+            for (const textId in allTexts) {
+                const text = allTexts[textId];
+                const card = document.createElement('div');
+                card.className = 'text-card bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200';
+                
+                let completedHTML = '';
+                if (completedTexts.has(textId)) {
+                    card.classList.add('completed');
+                    completedHTML = `
+                        <div class="completed-overlay absolute inset-0 bg-green-800 bg-opacity-70 flex items-center justify-center">
+                            <span class="text-white text-2xl font-bold">¡Completado!</span>
+                        </div>`;
+                }
+
+                card.innerHTML = `
+                    <div class="relative">
+                        <img src="${text.coverImage}" alt="" class="object-cover h-64 w-full" onerror="this.alt=''; this.src='https://placehold.co/300x400/fefcf3/c7a170?text=Portada'; this.onerror=null;">
+                        ${completedHTML}
+                    </div>
+                    <div class="p-4">
+                        <h3 class="text-lg font-bold text-stone-800 text-center">${text.title}</h3>
+                    </div>
+                `;
+                card.addEventListener('click', () => selectText(textId));
+                textSelectionContainer.appendChild(card);
+            }
+        }
+        
+        function selectText(textId) {
+            currentTextId = textId;
+            questionsLoadedCount = 0;
+            selectedTermCard = null; // Reiniciar término seleccionado
+            gameScreen.classList.remove('term-selected'); // Quitar estado de selección
+            
+            // Limpiar contenedores
+            termsContainer.innerHTML = '';
+            definitionsContainer.innerHTML = '';
+            feedbackArea.innerHTML = '';
+            feedbackArea.style.display = 'none';
+
+            // Barajar las preguntas
+            shuffledQuestionsForCurrentText = [...allTexts[textId].questions].sort(() => Math.random() - 0.5);
+
+            // Cargar las opciones de términos (con listener de CLIC)
+            const shuffledOptions = [...allTexts[textId].options].sort(() => Math.random() - 0.5);
+            shuffledOptions.forEach(term => {
+                const termCard = document.createElement('div');
+                termCard.className = 'term-card bg-sky-700 text-white p-3 rounded-lg shadow-md font-semibold text-center';
+                termCard.textContent = term;
+                // Añadir listener de CLIC
+                termCard.addEventListener('click', handleTermClick);
+                termsContainer.appendChild(termCard);
+            });
+ 
+            // Cargar el primer grupo de preguntas
+            loadNextQuestionChunk();
+
+            // Mostrar pantalla de juego
+            mainContent.style.display = 'none';
+            gameScreen.style.display = 'block';
+            gameHeaderTitle.textContent = allTexts[textId].title;
+        }
+
+        function loadNextQuestionChunk() {
+            // Decidir el tamaño del grupo
+            const totalQuestions = shuffledQuestionsForCurrentText.length;
+            const chunkSize = (totalQuestions <= 5) ? totalQuestions : 3;
+            const questionsToLoad = shuffledQuestionsForCurrentText.slice(questionsLoadedCount, questionsLoadedCount + chunkSize);
+            
+            if (questionsLoadedCount > 0) {
+                const separator = document.createElement('hr');
+                separator.className = 'my-8 border-t-2 border-dashed border-gray-300';
+                definitionsContainer.appendChild(separator);
+            }
+
+            questionsToLoad.forEach(question => {
+                const questionRow = document.createElement('div');
+                questionRow.className = 'flex flex-col sm:flex-row items-center gap-4';
+                
+                // Zona de soltar (ahora es una zona de CLIC)
+                const dropZone = document.createElement('div');
+                dropZone.className = 'drop-zone empty w-full sm:w-auto bg-amber-100 border-2 border-amber-300 rounded-lg';
+                dropZone.setAttribute('data-correct-term', question.term);
+                dropZone.textContent = PLACEHOLDER_TEXT; // Texto de placeholder
+                
+                const quoteText = document.createElement('div');
+                quoteText.className = 'quote-text p-3 bg-gray-50 rounded-lg border';
+                quoteText.innerHTML = `<p class="text-lg text-stone-700">${question.quote}</p>`;
+                
+                questionRow.appendChild(dropZone);
+                questionRow.appendChild(quoteText);
+                definitionsContainer.appendChild(questionRow);
+
+                // Añadir listener de CLIC a la zona de soltar
+                dropZone.addEventListener('click', handleDropZoneClick);
+            });
+            
+            questionsLoadedCount += questionsToLoad.length;
+            
+            // Actualizar subtítulo
+            const totalQuestionsForText = shuffledQuestionsForCurrentText.length;
+            gameHeaderSubtitle.textContent = `Mostrando preguntas 1 - ${questionsLoadedCount} de ${totalQuestionsForText}`;
+
+            // Restaurar botones
+            nextBtn.style.display = 'none';
+            checkBtn.style.display = 'inline-block';
+            checkBtn.disabled = false;
+            feedbackArea.style.display = 'none';
+        }
+
+        // --- NUEVAS FUNCIONES DE CLIC ---
+        
+        function handleTermClick(e) {
+            const clickedCard = e.currentTarget;
+            
+            // Si la tarjeta ya está usada, no hacer nada
+            if (clickedCard.classList.contains('used')) return;
+
+            // Deseleccionar si se hace clic en la misma tarjeta
+            if (clickedCard === selectedTermCard) {
+                selectedTermCard.classList.remove('selected');
+                selectedTermCard = null;
+                gameScreen.classList.remove('term-selected'); // Quitar estado global
+            } else {
+                // Deseleccionar la tarjeta anterior (si existe)
+                if (selectedTermCard) {
+                    selectedTermCard.classList.remove('selected');
+                }
+                // Seleccionar la nueva tarjeta
+                selectedTermCard = clickedCard;
+                selectedTermCard.classList.add('selected');
+                gameScreen.classList.add('term-selected'); // Añadir estado global
+            }
+        }
+
+        function handleDropZoneClick(e) {
+            const clickedDropZone = e.currentTarget;
+
+            // Si no hay ningún término seleccionado, no hacer nada
+            if (!selectedTermCard) return;
+            
+            // Si la zona ya está marcada como correcta, no hacer nada
+            if (clickedDropZone.classList.contains('correct')) return;
+
+            // Obtener el término que ya está en la caja (si existe)
+            const oldTermText = clickedDropZone.textContent;
+            
+            // Obtener el nuevo término de la tarjeta seleccionada
+            const newTermText = selectedTermCard.textContent;
+
+            // --- Lógica de Intercambio ---
+            
+            // 1. Si había un término antiguo, liberarlo en el banco
+            if (oldTermText !== PLACEHOLDER_TEXT) {
+                const oldTermCard = Array.from(termsContainer.children).find(card => card.textContent === oldTermText);
+                if (oldTermCard) {
+                    oldTermCard.classList.remove('used');
+                }
+            }
+
+            // 2. Poner el nuevo término en la caja
+            clickedDropZone.textContent = newTermText;
+            clickedDropZone.classList.remove('empty');
+            clickedDropZone.classList.add('has-term');
+            clickedDropZone.classList.remove('error'); // Limpiar error previo
+
+            // 3. Marcar la nueva tarjeta como 'usada' en el banco
+            selectedTermCard.classList.add('used');
+            selectedTermCard.classList.remove('selected');
+            
+            // 4. Limpiar selección
+            selectedTermCard = null;
+            gameScreen.classList.remove('term-selected');
+        }
+        
+        // --- 5. LÓGICA DE BOTONES (Modificada para Clic) ---
+        
+        checkBtn.addEventListener('click', () => {
+            let allCurrentQuestionsCorrect = true;
+            let hintsToGive = [];
+            let explanations = [];
+
+            const dropZonesToCheck = definitionsContainer.querySelectorAll('.drop-zone:not(.correct)');
+
+            if (dropZonesToCheck.length === 0) return;
+
+            dropZonesToCheck.forEach(zone => {
+                const correctTerm = zone.getAttribute('data-correct-term');
+                const droppedTerm = zone.textContent; // LEER EL TEXTO
+                
+                zone.classList.remove('error');
+                
+                if (droppedTerm === PLACEHOLDER_TEXT) { // Comprobar si está vacío
+                    allCurrentQuestionsCorrect = false;
+                    zone.classList.add('error');
+                    const termData = allTerms[correctTerm];
+                    if (termData) hintsToGive.push({ term: correctTerm, hint: termData.hint });
+                } else if (droppedTerm === correctTerm) {
+                    zone.classList.add('correct');
+                    zone.classList.remove('has-term'); // Quitar estilo de "en-juego"
+                    const termData = allTerms[correctTerm];
+                    if (termData) explanations.push({ term: correctTerm, explanation: termData.explanation });
+                } else {
+                    allCurrentQuestionsCorrect = false;
+                    zone.classList.add('error');
+                    // Registrar la estadística de error
+                    struggleStats[correctTerm] = (struggleStats[correctTerm] || 0) + 1;
+                    const termData = allTerms[correctTerm];
+                    if (termData) hintsToGive.push({ term: correctTerm, hint: termData.hint });
+                }
+            });
+
+            feedbackArea.style.display = 'block';
+            if (allCurrentQuestionsCorrect) {
+                feedbackArea.className = 'feedback-area mt-8 p-6 rounded-lg border-2 success';
+                let feedbackHTML = `<h3 class="text-xl font-bold text-green-800 mb-4">¡Grupo Completado!</h3><ul class="list-disc list-inside space-y-2">`;
+                explanations.forEach(item => {
+                    feedbackHTML += `<li><strong class="font-semibold">${item.term}:</strong> ${item.explanation}</li>`;
+                });
+                feedbackHTML += `</ul>`;
+                feedbackArea.innerHTML = feedbackHTML;
+
+                // Decidir si cargar más o terminar el texto
+                if (questionsLoadedCount < shuffledQuestionsForCurrentText.length) {
+                    nextBtn.textContent = "Siguiente Grupo";
+                } else {
+                    nextBtn.textContent = "¡Texto Terminado!";
+                }
+                
+                nextBtn.style.display = 'inline-block';
+                checkBtn.style.display = 'none';
+                
+            } else {
+                // --- INICIO DE LA CORRECCIÓN ---
+                feedbackArea.className = 'feedback-area mt-8 p-6 rounded-lg border-2 error';
+                let feedbackHTML = `<h3 class="text-xl font-bold text-red-800 mb-4">¡Sigue intentando!</h3><p class="mb-4">Aquí tienes algunas pistas para los términos que fallaste o te faltaron:</p><ul class="list-disc list-inside space-y-2">`;
+                
+                // Extraer solo las pistas (hints)
+                const hintsOnly = hintsToGive.map(item => item.hint);
+                // Filtrar pistas únicas para no ser repetitivo
+                const uniqueHints = [...new Set(hintsOnly)];
+
+                uniqueHints.forEach(hint => {
+                    feedbackHTML += `<li>${hint}</li>`; // ¡ARREGLADO! Ya no muestra el término.
+                });
+                feedbackHTML += `</ul>`;
+                feedbackArea.innerHTML = feedbackHTML;
+                // --- FIN DE LA CORRECCIÓN ---
+            }
+        });
+
+        // Botones next, back, y reset (sin cambios)
+        nextBtn.addEventListener('click', () => {
+            if (questionsLoadedCount < shuffledQuestionsForCurrentText.length) {
+                loadNextQuestionChunk();
+            } else {
+                completedTexts.add(currentTextId);
+                if (completedTexts.size === Object.keys(allTexts).length) {
+                    showFinalSummary();
+                } else {
+                    gameScreen.style.display = 'none';
+                    mainContent.style.display = 'block';
+                    createTextSelectionScreen();
+                    mainFeedback.textContent = `¡Felicidades! Has completado "${allTexts[currentTextId].title}".`;
+                    mainFeedback.className = 'text-center text-lg font-semibold p-4 rounded-lg mb-6 bg-green-100 text-green-800';
+                    mainFeedback.style.display = 'block';
+                }
+            }
+        });
+        
+        backToTextsBtn.addEventListener('click', () => {
+            if (completedTexts.size === Object.keys(allTexts).length) {
+                showFinalSummary();
+            } else {
+                gameScreen.style.display = 'none';
+                mainContent.style.display = 'block';
+                mainFeedback.style.display = 'none';
+            }
+        });
+
+        resetBtn.addEventListener('click', () => {
+            startTime = new Date();
+            initGame();
+        });
+        
+        // --- 6. FUNCIONES DE RESUMEN FINAL (Sin cambios) ---
+        function showFinalSummary() {
+            gameScreen.style.display = 'none';
+            mainContent.style.display = 'none';
+
+            const endTime = new Date();
+            const totalTime = Math.round((endTime - startTime) / 1000);
+            const minutes = Math.floor(totalTime / 60);
+            const seconds = totalTime % 60;
+            
+            document.getElementById('summary-name').textContent = nameInput.value.trim();
+            document.getElementById('summary-time').textContent = `${minutes} min ${seconds} seg`;
+
+            const struggleList = document.getElementById('summary-struggle-list');
+            const noStruggleMsg = document.getElementById('summary-no-struggle');
+            struggleList.innerHTML = '';
+            
+            const struggledTerms = Object.entries(struggleStats)
+                .filter(([term, count]) => count > 1)
+                .sort((a, b) => b[1] - a[1]);
+
+            if (struggledTerms.length > 0) {
+                noStruggleMsg.style.display = 'none';
+                struggleList.style.display = 'block';
+                struggledTerms.forEach(([term, count]) => {
+                    const li = document.createElement('li');
+                    li.textContent = `${term} (fallado ${count} veces)`;
+                    struggleList.appendChild(li);
+                });
+            } else {
+                noStruggleMsg.style.display = 'block';
+                struggleList.style.display = 'none';
+            }
+            
+            summaryModal.style.display = 'flex';
+
+            setTimeout(() => {
+                const summaryContent = document.getElementById('summary-content');
+                html2canvas(summaryContent, {
+                    backgroundColor: "#fefcf3",
+                    onclone: (document) => {
+                        document.body.style.backgroundColor = "#fefcf3";
+                    }
+                }).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = `resumen_actividad_ap_${nameInput.value.trim().replace(' ', '_')}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                    
+                    setTimeout(() => {
+                        summaryModal.style.display = 'none';
+                        initGame();
+                    }, 3000);
+                });
+            }, 500);
+        }
+        
+    </script>
+</body>
+</html>
+
